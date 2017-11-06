@@ -1,0 +1,4 @@
+gripper_controller:
+  #type: effort_controllers/GripperActionController
+  type: position_controllers/GripperActionController
+  joint: s_model_finger_1_joint_1

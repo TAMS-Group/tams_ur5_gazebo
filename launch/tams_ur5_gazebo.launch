@@ -32,7 +32,7 @@
 
   <!-- spawn ur5 controller (we need a custom yaml as we are using a namespace) -->
   <rosparam file="$(find tams_ur5_gazebo)/controller/arm_controller_ur5.yaml" command="load"/>
-  <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn arm_controller" respawn="false" output="screen"/>
+  <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn pos_joint_traj_controller" respawn="false" output="screen"/>
 
   <!-- Remap follow_joint_trajectory -->
   <remap from="/follow_joint_trajectory" to="/arm_controller/follow_joint_trajectory"/>

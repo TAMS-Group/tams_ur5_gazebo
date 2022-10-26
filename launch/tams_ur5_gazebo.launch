@@ -11,28 +11,35 @@
   </include>
 
   <!-- send robot urdf to param server -->
-  <include file="$(find tams_ur5_setup_description)/launch/tams_ur5_setup_upload.launch">
-    <arg name="sim" value="true"/>
-  </include>
+  <include file="$(find tams_ur5_setup_description)/launch/tams_ur5_setup_upload.launch" />
 
-  <!-- push robot_description to factory and spawn robot in gazebo -->
+
+  <!-- Start the publisher for the gripper (the only hand) -->
+  <!--
+  <node pkg="robot_state_publisher" type="state_publisher" name="robotiq_gripper_robot_state_publisher">
+    <param name="publish_frequency" type="double" value="50.0" />
+    <remap from="joint_states" to="/hand/joint_states" />
+  </node>
+
+  <node pkg="topic_tools" type="relay" name="relay_joint_states" args="/s_model_hand/joint_states /joint_states" />
+-->
+
+  <!-- spawn robot in gazebo with start position-->
   <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot -J ur5_shoulder_lift_joint 0.0 -J ur5_shoulder_pan_joint 1.57 -J ur5_elbow_joint -1.0 -J ur5_wrist_1_joint 0.0 -J ur5_wrist_2_joint 1.57 -J ur5_wrist_3_joint 0.0" respawn="false" output="screen" />
 
-  <!--<node name="sModelStatePublisher" pkg="robotiq_joint_state_publisher" type="s_model_joint_states">
-    <param name="prefix" value="s_model_" />
-  </node>-->
-  <!-- Gripper action server-->
-  <include file="$(find robotiq_s_model_action_server)/launch/robotiq_s_model_action_server.launch">
-  </include>
 
-  <include file="$(find tams_ur5_gazebo)/launch/controller_utils.launch"/>
+  <include file="$(find ur_gazebo)/launch/controller_utils.launch"/>
 
+  <!-- spawn ur5 controller (we need a custom yaml as we are using a namespace) -->
   <rosparam file="$(find tams_ur5_gazebo)/controller/arm_controller_ur5.yaml" command="load"/>
-  <!--<rosparam file="$(find tams_ur5_gazebo)/controller/gripper_controller.yaml" command="load"/>-->
   <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn arm_controller" respawn="false" output="screen"/>
 
   <!-- Remap follow_joint_trajectory -->
   <remap from="/follow_joint_trajectory" to="/arm_controller/follow_joint_trajectory"/>
+
+  <!-- Gripper action server-->
+  <!--<include file="$(find robotiq_s_model_action_server)/launch/robotiq_s_model_action_server.launch" />
+  -->
 
   <include file="$(find tams_ur5_setup_moveit_config)/launch/move_group.launch"/>
 </launch>

@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="paused" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="launch_rviz" default="true" />
+
+  <!-- startup simulated world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" default="$(find tams_ur5_gazebo)/worlds/empty.world"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="gui" value="$(arg gui)"/>
+  </include>
+
+  <!-- send robot urdf to param server -->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find tams_ur5_gazebo)/urdf/mallet.xacro'" />
+
+  <!-- Robot state publisher -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="200.0" />
+    <param name="tf_prefix" type="string" value="" />
+  </node>
+
+
+  <!-- spawn robot in gazebo with start position-->
+  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" 
+        args="-urdf -param robot_description -model robot"
+        respawn="false" output="screen" />
+
+  <!-- spawn ur5 controller (we need a custom yaml as we are using a namespace) -->
+  <rosparam file="$(find tams_ur5_gazebo)/controller/mallet_controller.yaml" command="load"/>
+
+  <node name="mallet_controller_spawner" pkg="controller_manager" type="spawner" 
+        args="mallet_traj_controller joint_state_controller" respawn="false" output="screen" />
+
+  <!-- Remap follow_joint_trajectory 
+  <remap from="/follow_joint_trajectory" to="/arm_controller/follow_joint_trajectory"/>
+  -->
+
+  <group if="$(arg launch_rviz)">
+   <node name="rviz" pkg="rviz" type="rviz" respawn="false"
+         args="-d $(find tams_ur5_gazebo)/config/mallet.rviz"  />
+  </group>
+
+</launch>

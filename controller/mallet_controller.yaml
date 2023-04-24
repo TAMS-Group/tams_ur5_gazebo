@@ -1,0 +1,55 @@
+joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 1000
+
+
+mallet_traj_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+     - world_mallet5_joint
+     - mallet5_stick_1_joint
+     - mallet5_stick_2_joint
+     - mallet5_stick_3_joint
+     - mallet5_stick_4_joint
+     # - gabi_stick_1_joint
+     # - gabi_stick_2_joint
+     # - gabi_stick_3_joint
+     # - gabi_stick_4_joint
+     # - olga_stick_1_joint
+     # - olga_stick_2_joint
+     # - olga_stick_3_joint
+     # - olga_stick_4_joint
+  gains:
+    world_mallet5_joint: {p:  2500.0, d: 1.0, i: 20.0, i_clamp: 80.0}
+    mallet5_stick_1_joint: {p:  500.0, d: 1.0, i: 5.0, i_clamp: 44.0}
+    mallet5_stick_2_joint: {p:  500.0, d: 1.0, i: 5.0, i_clamp: 44.0}
+    mallet5_stick_3_joint: {p:  500.0, d: 1.0, i: 5.0, i_clamp: 44.0}
+    mallet5_stick_4_joint: {p:  500.0, d: 1.0, i: 5.0, i_clamp: 44.0}
+    # gabi_stick_1_joint: {p:  50.0, d: 1.0, i: 1.0, i_clamp: 4.0}
+    # gabi_stick_2_joint: {p:  50.0, d: 1.0, i: 1.0, i_clamp: 4.0}
+    # gabi_stick_3_joint: {p:  50.0, d: 1.0, i: 1.0, i_clamp: 4.0}
+    # gabi_stick_4_joint: {p:  50.0, d: 1.0, i: 1.0, i_clamp: 4.0}
+    # olga_stick_1_joint: {p:  500.0, d: 10.0, i: 1.0, i_clamp: 10.0}
+    # olga_stick_2_joint: {p:  500.0, d: 10.0, i: 1.0, i_clamp: 10.0}
+    # olga_stick_3_joint: {p:  500.0, d: 10.0, i: 1.0, i_clamp: 10.0}
+    # olga_stick_4_joint: {p:  500.0, d: 10.0, i: 1.0, i_clamp: 10.0}
+  constraints:
+      goal_time: 0.3
+      stopped_velocity_tolerance: 0.02
+      world_mallet5_joint: {trajectory: 0.01, goal: 0.01}
+      mallet5_stick_1_joint: {trajectory: 0.01, goal: 0.01}
+      mallet5_stick_2_joint: {trajectory: 0.01, goal: 0.01}
+      mallet5_stick_3_joint: {trajectory: 0.01, goal: 0.01}
+      mallet5_stick_4_joint: {trajectory: 0.01, goal: 0.01}
+      # gabi_stick_1_joint: {trajectory: 0.1, goal: 0.1}
+      # gabi_stick_2_joint: {trajectory: 0.1, goal: 0.1}
+      # gabi_stick_3_joint: {trajectory: 0.1, goal: 0.1}
+      # gabi_stick_4_joint: {trajectory: 0.1, goal: 0.1}
+      # olga_stick_1_joint: {trajectory: 0.1, goal: 0.1}
+      # olga_stick_2_joint: {trajectory: 0.1, goal: 0.1}
+      # olga_stick_3_joint: {trajectory: 0.1, goal: 0.1}
+      # olga_stick_4_joint: {trajectory: 0.1, goal: 0.1}
+  stop_trajectory_duration: 0.5
+  state_publish_rate:  250
+  action_monitor_rate:  20
+

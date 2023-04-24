@@ -1,0 +1,202 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"
+       name="mallet" > 
+ 
+  <!--
+  <xacro:property name="ball_diameter" value="0.03" />
+  <xacro:property name="length" value="0.50" />
+  <xacro:property name="njoints" value="5" />
+  -->
+
+
+  <xacro:macro name="mallet_ball" params="name diameter mass">
+
+    <link name="${name}">
+      <inertial>
+        <origin xyz="0 0 0" />
+        <mass value="${mass}" />
+        <inertia  ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.001" />
+      </inertial>
+      <visual>
+        <material name="${name}_material">
+          <color rgba="0.5 1.0 0.8 0.6" />
+        </material>
+        <geometry>
+          <sphere radius="${diameter/2}" />
+        </geometry>
+      </visual>
+      <collision>
+        <geometry>
+          <sphere radius="${diameter/2}" />
+        </geometry>
+      </collision>
+    </link>
+
+    <gazebo reference="${name}">
+      <material>Gazebo/DarkRed</material>
+      <turnGravityOff>false</turnGravityOff>
+      <selfCollide>true</selfCollide>
+      <!-- kp: stiffness kd: damping mu1, mu2: friction -->
+      <mu1>100.0</mu1>
+      <mu2>100.0</mu2>
+      <kp>1000000.0</kp>
+      <kd>1.0</kd>
+    </gazebo>
+
+  </xacro:macro>
+
+
+  <xacro:macro name="mallet_stick_piece" params="name diameter length mass">
+    <link name="${name}">
+      <inertial>
+        <origin xyz="0 0 ${length/2}" />
+        <mass value="${mass}" />
+        <inertia  ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.00001" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 ${length/2}" />
+        <material name="${name}_material">
+          <color rgba="0.5 1.0 0.8 0.6" />
+        </material>
+        <geometry>
+          <cylinder radius="${diameter/2}" length="${length}" />
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${length/2}" />
+        <geometry>
+          <cylinder radius="${diameter/2}" length="${length}" />
+        </geometry>
+      </collision>
+    </link>
+
+    <gazebo reference="${name}">
+      <material>Gazebo/WoodPallet</material>
+      <turnGravityOff>false</turnGravityOff>
+      <selfCollide>true</selfCollide>
+      <!-- kp: stiffness kd: damping mu1, mu2: friction -->
+      <mu1>100.0</mu1>
+      <mu2>100.0</mu2>
+      <kp>1000000.0</kp>
+      <kd>1.0</kd>
+    </gazebo>
+
+  </xacro:macro>
+
+  
+  <xacro:macro name="mallet_joint" params="name index piece_length effort lower:=-0.02 upper:=0.02" >
+
+    <joint name="${name}_stick_${index}_joint" type="revolute" >
+      <axis xyz="1 0 0" />
+      <origin xyz="0 0 ${piece_length+0.002}" rpy="0 0 0" />
+      <parent link="${name}_stick_${index}" />
+      <child  link="${name}_stick_${index+1}" />
+      <limit  lower="${lower}" upper="${upper}" effort="${effort}" velocity="0.1" />
+      <dynamics  friction="0.5" damping="0.1" />
+    </joint>
+
+    <transmission name="${name}_stick_${index}_joint_transmission">
+      <type>transmission_interface/SimpleTransmission</type>
+      <actuator name="${name}_stick_${index}_joint}_motor">
+        <mechanicalReduction>1.234</mechanicalReduction>
+      </actuator>
+      <joint name="${name}_stick_${index}_joint">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+    </transmission>
+
+  </xacro:macro>
+
+
+
+  <xacro:macro name="mallet" params="name mass length diameter ball_diameter effort" >
+
+    <link name="${name}" />
+
+    <joint name="${name}_mount_joint" type="fixed" >
+      <parent link="${name}" />
+      <child  link="${name}_stick_1" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+
+    <xacro:mallet_stick_piece name="${name}_stick_1" diameter="0.01" length="${length/5}" mass="0.05" />
+    <xacro:mallet_stick_piece name="${name}_stick_2" diameter="0.01" length="${length/5}" mass="0.05" />
+    <xacro:mallet_stick_piece name="${name}_stick_3" diameter="0.01" length="${length/5}" mass="0.05" />
+    <xacro:mallet_stick_piece name="${name}_stick_4" diameter="0.01" length="${length/5}" mass="0.05" />
+    <xacro:mallet_stick_piece name="${name}_stick_5" diameter="0.01" length="${length/5}" mass="0.05" />
+
+    <xacro:mallet_ball name="${name}_ball" diameter="${ball_diameter}" mass="0.07" />
+
+    <xacro:mallet_joint name="${name}" index="1" piece_length="${length/5}" effort="${effort}" />
+    <xacro:mallet_joint name="${name}" index="2" piece_length="${length/5}" effort="${effort}" />
+    <xacro:mallet_joint name="${name}" index="3" piece_length="${length/5}" effort="${effort}" />
+    <xacro:mallet_joint name="${name}" index="4" piece_length="${length/5}" effort="${effort}" />
+
+    <joint name="${name}_ball_joint" type="fixed" >
+      <parent link="${name}_stick_5" />
+      <child  link="${name}_ball" />
+      <origin xyz="0 0 ${length/5+ball_diameter/2+0.001}" rpy="0 0 0" />
+    </joint>
+
+  </xacro:macro>
+
+
+  <!-- effort 0.1 too weak, 1 ok'ish, 10 explodes -->
+  <xacro:mallet name="mallet5"  length="0.5" diameter="0.01" ball_diameter="0.05" mass="0.2" effort="3.0" /> 
+
+  <link name="world" />
+
+  <!--
+  <joint name="world_mallet5_joint" type="fixed">
+    <origin xyz="0 0 0.2" rpy="1.571 0 0" />
+    <parent link="world" />
+    <child link="mallet5" />
+  </joint>
+  -->
+
+    <joint name="world_mallet5_joint" type="revolute" >
+      <axis xyz="1 0 0" />
+      <origin xyz="0 0 0.2" rpy="1.571 0 0" />
+      <parent link="world" />
+      <child  link="mallet5" />
+      <limit  lower="-0.2" upper="0.2" effort="25" velocity="0.5" />
+      <dynamics  friction="0.01" damping="0.1" />
+    </joint>
+
+    <transmission name="world_mallet5_joint_transmission">
+      <type>transmission_interface/SimpleTransmission</type>
+      <actuator name="world_mallet5_joint_motor">
+        <mechanicalReduction>1.234</mechanicalReduction>
+      </actuator>
+      <joint name="world_mallet5_joint">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+    </transmission>
+
+  <!--
+  <xacro:mallet name="gabi"  length="0.5" diameter="0.01" ball_diameter="0.05" mass="0.2" effort="1.0" /> 
+  <xacro:mallet name="olga"  length="0.5" diameter="0.01" ball_diameter="0.05" mass="0.2" effort="2.0" />
+  <joint name="world_gabi_joint" type="fixed">
+    <origin xyz="0.1 0 0.2" rpy="1.571 0 0" />
+    <parent link="world" />
+    <child link="gabi" />
+  </joint>
+
+  <joint name="world_olga_joint" type="fixed">
+    <origin xyz="0.2 0 0.2" rpy="1.571 0 0" />
+    <parent link="world" />
+    <child link="olga" />
+  </joint>
+  -->
+
+  <gazebo>
+    <plugin filename="libgazebo_ros_control.so" name="tams_ur5_gazebo_ros_control">
+      <!-- <robotSimType>sr_gazebo_sim/SrGazeboHWSim</robotSimType> -->
+      <robotNamespace>/</robotNamespace>
+      <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+      <legacyModeNS>true</legacyModeNS>
+      <updateRate>1000.0</updateRate>
+    </plugin>
+  </gazebo>
+
+</robot>

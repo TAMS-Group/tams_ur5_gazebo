@@ -2,6 +2,7 @@
 <launch>
   <arg name="paused" default="true"/>
   <arg name="gui" default="true"/>
+  <arg name="launch_rviz" default="true" />
 
   <!-- startup simulated world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -10,8 +11,9 @@
     <arg name="gui" value="$(arg gui)"/>
   </include>
 
-  <!-- send robot urdf to param server -->
-  <include file="$(find tams_ur5_setup_description)/launch/tams_ur5_setup_upload.launch" />
+  <!-- send robot urdf to param server, we have some Gazebo modifications here...  -->
+  <!-- <include file="$(find tams_ur5_setup_description)/launch/tams_ur5_setup_upload.launch" /> -->
+  <include file="$(find tams_ur5_gazebo)/launch/tams_ur5_setup_upload.launch" />
 
 
   <!-- Start the publisher for the gripper (the only hand) -->
@@ -24,22 +26,75 @@
   <node pkg="topic_tools" type="relay" name="relay_joint_states" args="/s_model_hand/joint_states /joint_states" />
 -->
 
-  <!-- spawn robot in gazebo with start position-->
-  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot -J ur5_shoulder_lift_joint 0.0 -J ur5_shoulder_pan_joint 1.57 -J ur5_elbow_joint -1.0 -J ur5_wrist_1_joint 0.0 -J ur5_wrist_2_joint 1.57 -J ur5_wrist_3_joint 0.0" respawn="false" output="screen" />
+  <!-- spawn robot in gazebo with start position "home" (=upright) -->
+  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" 
+        args="-urdf -param robot_description -model robot 
+               -J ur5_shoulder_lift_joint -1.571 -J ur5_shoulder_pan_joint 0.0 -J ur5_elbow_joint 0.0
+               -J ur5_wrist_1_joint -1.571 -J ur5_wrist_2_joint 0.0 -J ur5_wrist_3_joint 0.0" 
+        respawn="false" output="screen" />
 
-
+  <!--
   <include file="$(find ur_gazebo)/launch/controller_utils.launch"/>
-
-  <!-- spawn ur5 controller (we need a custom yaml as we are using a namespace) -->
-  <rosparam file="$(find tams_ur5_gazebo)/controller/arm_controller_ur5.yaml" command="load"/>
-  <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn arm_controller" respawn="false" output="screen"/>
-
-  <!-- Remap follow_joint_trajectory -->
-  <remap from="/follow_joint_trajectory" to="/arm_controller/follow_joint_trajectory"/>
-
-  <!-- Gripper action server-->
-  <!--<include file="$(find robotiq_s_model_action_server)/launch/robotiq_s_model_action_server.launch" />
   -->
 
+  <!-- we want Gazebo joint_states and TF (=robot_state_publisher) -->
+  <rosparam file="$(find tams_ur5_gazebo)/controller/joint_state_controller.yaml" command="load"/>
+
+  <node name="joint_state_controller_spawner" pkg="controller_manager" type="spawner" 
+        args="joint_state_controller" respawn="false" output="screen"/>
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="100.0" />
+    <param name="tf_prefix" type="string" value="" />
+  </node>
+
+  <!-- arm controller, actually called "/pos_joint_traj_controller" -->
+  <rosparam file="$(find tams_ur5_gazebo)/controller/arm_controller_ur5.yaml" command="load"/>
+
+  <node name="arm_controller_spawner" pkg="controller_manager" type="spawner" 
+        args="pos_joint_traj_controller" respawn="false" output="screen" />
+
+  <!-- remap arm_controller/ to top-level /follow_joint_trajectory -->
+  <remap from="/follow_joint_trajectory" to="/arm_controller/follow_joint_trajectory"/>
+
+  <!-- our Robotiq gripper simulation has all joints actively controlled -->
+  <rosparam file="$(find tams_ur5_gazebo)/controller/gripper_controller.yaml" command="load"/>
+
+  <node name="gripper_controller_spawner" pkg="controller_manager" type="spawner" 
+        args="gripper_controller" respawn="false" output="screen" />
+
+  <!-- we want to remap the gripper controller topics, but that is not so easy with gazebo plugins... -->
+  <remap from="/gripper_action" to="/gripper_controller/follow_joint_trajectory" />
+
+  <!-- does not work:
+  <remap from="/gripper_controller/follow_joint_trajectory/goal" to="/gripper_action/goal" />
+  <remap from="/gripper_controller/follow_joint_trajectory/cancel" to="/gripper_action/cancel" />
+  <remap from="/gripper_controller/follow_joint_trajectory/feedback" to="/gripper_action/feedback" />
+  <remap from="/gripper_controller/follow_joint_trajectory/result" to="/gripper_action/result" />
+  <remap from="/gripper_controller/follow_joint_trajectory/status" to="/gripper_action/status" />
+  -->
+  <!--
+  <node pkg="topic_tools" type="relay" name="gripper_action_goal_relay" 
+        args="/gripper_action/goal /gripper_controller/follow_joint_trajectory/goal" />
+  <node pkg="topic_tools" type="relay" name="gripper_action_cancel_relay" 
+        args="/gripper_action/cancel /gripper_controller/follow_joint_trajectory/cancel" />
+  <node pkg="topic_tools" type="relay" name="gripper_action_status_relay" 
+        args="/gripper_controller/follow_joint_trajectory/status /gripper_action/status" />
+  <node pkg="topic_tools" type="relay" name="gripper_action_result_relay" 
+        args="/gripper_controller/follow_joint_trajectory/result /gripper_action/result" />
+  <node pkg="topic_tools" type="relay" name="gripper_action_feedback_relay" 
+        args="/gripper_controller/follow_joint_trajectory/feedback /gripper_action/feedback" />
+  -->
+
+  <!-- fake UR5 calibration -->
+  <node pkg="rostopic" type="rostopic" name="fake_joint_calibration"
+        args="pub /calibrated std_msgs/Bool true" />
+
+  <!-- Moveit, same configuration as real TAMS robot -->
   <include file="$(find tams_ur5_setup_moveit_config)/launch/move_group.launch"/>
+
+  <group if="$(arg launch_rviz)">
+   <node name="rviz" pkg="rviz" type="rviz" respawn="false"
+         args="-d $(find tams_ur5_gazebo)/config/tams_ur5_gazebo.rviz"  />
+  </group>
 </launch>

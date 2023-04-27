@@ -43,7 +43,9 @@ roslaunch tams_ur5_gazebo tams_ur5_gazebo.launch
 ```
 
 The world should now look similar to the screenshot:
-<img src="doc/screen-gazebo-grab-coke-can.png" alt="screenshot of TAMS UR5 setup in gazebo simulator",
+
+<img src="doc/screen-gazebo-grab-coke-can.png" 
+     alt="screenshot of TAMS UR5 setup in gazebo simulator"
      width="600" />
 
 
